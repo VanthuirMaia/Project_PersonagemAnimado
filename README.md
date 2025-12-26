@@ -53,11 +53,13 @@ python -m venv .venv
 3. **Ative o ambiente virtual**
 
 Windows:
+
 ```bash
 .venv\Scripts\activate
 ```
 
 Linux/Mac:
+
 ```bash
 source .venv/bin/activate
 ```
@@ -171,11 +173,13 @@ video_path = video_gen.create_video_from_images(
 **Modelo**: Stable Diffusion v1.5 (Hugging Face Diffusers)
 
 **Estratégia de Consistência**:
+
 - Seeds sequenciais a partir de uma seed base
 - Prompt detalhado e consistente
 - Negative prompt para evitar artefatos
 
 **Parâmetros Principais**:
+
 - `guidance_scale`: Controla aderência ao prompt (7-15)
 - `num_inference_steps`: Qualidade da geração (30-100)
 - `seed`: Reprodutibilidade
@@ -187,6 +191,7 @@ video_path = video_gen.create_video_from_images(
 **Técnica**: Interpolação linear entre frames (cross-dissolve)
 
 **Processo**:
+
 1. Cada imagem é mantida por N frames estáticos
 2. Transições suaves usando `cv2.addWeighted`
 3. Loop opcional para animação contínua
@@ -203,16 +208,19 @@ video_path = video_gen.create_video_from_images(
 ## Desafios e Limitações
 
 ### Consistência Visual
+
 - **Desafio**: Manter identidade entre gerações
 - **Solução Atual**: Seeds sequenciais
 - **Melhoria Futura**: ControlNet com pose reference
 
 ### Coerência Temporal
+
 - **Desafio**: Transições suaves
 - **Solução Atual**: Interpolação linear
 - **Melhoria Futura**: Motion transfer, text-to-video models
 
 ### Recursos Computacionais
+
 - Geração local requer GPU com boa memória
 - Em CPU, a geração é muito mais lenta
 - Modelos ocupam ~5GB de espaço
@@ -240,26 +248,35 @@ video_path = video_gen.create_video_from_images(
 ## Troubleshooting
 
 ### Erro: "CUDA out of memory"
+
 - Reduza o tamanho das imagens (width/height)
 - Reduza batch size (gere menos imagens por vez)
 - Use `use_fp16=True` para economizar memória
 - Feche outros programas que usam GPU
 
 ### Erro: "Model not found"
+
 - Verifique conexão com internet (primeiro uso baixa modelo)
 - Aguarde download completar (~5GB)
 - Verifique espaço em disco
 
 ### Geração muito lenta
+
 - Use GPU em vez de CPU
 - Reduza `num_inference_steps`
 - Considere usar APIs cloud
 
-## Autor
+## Autores
 
-Projeto desenvolvido para a disciplina de IA Generativa para Texto e Fala
+**Vanthuir Maia** - vanmaiasf@gmail.com
+**Rodrigo Santana** - rodrigoalisson33@gmail.com
+
+## Informações Acadêmicas
+
+**Instituição**: Universidade de Pernambuco (UPE)
+**Programa**: Residência em IA Generativa
+**Disciplina**: IA Generativa para Mídia Visual
 
 ## Licença
 
 Este projeto é para fins educacionais.
-# Project_PersonagemAnimado
