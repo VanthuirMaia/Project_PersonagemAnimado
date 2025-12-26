@@ -52,7 +52,15 @@ class ImageGenerator:
 
     def load_model(self):
         """Carrega o modelo Stable Diffusion"""
-        print(f"Carregando modelo {self.model_id} no dispositivo {self.device}...")
+        print(f"\n{'='*60}")
+        print(f"Carregando modelo {self.model_id}")
+        print(f"Dispositivo: {self.device.upper()}")
+        if self.device == "cpu":
+            print("⚠️  AVISO: Usando CPU - a geração será MUITO lenta (10-15 min/imagem)")
+            print("   Para acelerar, instale PyTorch com CUDA se tiver GPU NVIDIA")
+        else:
+            print("✓ Usando GPU - geração rápida (~30 seg/imagem)")
+        print(f"{'='*60}\n")
 
         # Configurar tipo de dados
         torch_dtype = torch.float16 if self.use_fp16 else torch.float32
@@ -189,7 +197,6 @@ class ImageGenerator:
             image_filename = f"character_{i+1:03d}_seed{current_seed}.png"
             image_path = output_path / image_filename
             image.save(image_path)
-            print(f"  Salva: {image_filename}")
 
             # Calcular tempo e estimar tempo restante
             img_time = time.time() - img_start
@@ -198,6 +205,11 @@ class ImageGenerator:
             remaining_images = num_images - (i + 1)
             estimated_remaining = avg_time_per_image * remaining_images
 
+            # Mostrar progresso no console
+            mins_remaining = int(estimated_remaining // 60)
+            secs_remaining = int(estimated_remaining % 60)
+            print(f"  Salva: {image_filename} (tempo: {img_time:.1f}s | média: {avg_time_per_image:.1f}s | restante: {mins_remaining}min {secs_remaining}s)")
+
             # Callback de progresso após gerar
             if progress_callback:
                 progress_callback(
@@ -205,7 +217,7 @@ class ImageGenerator:
                     num_images,
                     "completed",
                     time_remaining=estimated_remaining,
-                    time_per_image=img_time
+                    time_per_image=avg_time_per_image
                 )
 
         # Salvar metadados
