@@ -1,26 +1,26 @@
 # Interface
-streamlit==1.31.0
+streamlit>=1.40.0
 streamlit-extras==0.3.6
 
 # Geração de Imagens
-diffusers==0.30.0
-transformers==4.44.0
-huggingface-hub==0.24.0
-accelerate==0.33.0
-torch==2.2.0
-torchvision==0.17.0
-safetensors==0.4.2
+diffusers>=0.30.0
+transformers>=4.45.0
+huggingface-hub>=0.24.0
+accelerate>=0.33.0
+torch==2.8.0
+torchvision>=0.23.0
+safetensors>=0.4.5
 invisible-watermark==0.2.0
 
 # Geração de Vídeo
-opencv-python==4.9.0.80
-pillow==10.2.0
+opencv-python>=4.10.0
+pillow>=10.4.0
 imageio==2.34.0
 imageio-ffmpeg==0.4.9
 moviepy==1.0.3
 
 # Utilidades
-numpy==1.26.4
+numpy>=2.0.0
 tqdm==4.66.1
 requests==2.31.0
 python-dotenv==1.0.1

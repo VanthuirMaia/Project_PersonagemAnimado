@@ -14,6 +14,7 @@ from pathlib import Path
 import json
 from datetime import datetime
 import shutil
+import time
 
 # Adicionar diretório src ao path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -222,7 +223,7 @@ def main():
             generate_btn = st.button(
                 "🎨 Gerar Imagens",
                 type="primary",
-                use_container_width=True
+                width='stretch'
             )
 
         if generate_btn:
@@ -233,11 +234,20 @@ def main():
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 time_text = st.empty()
+                timer_container = st.empty()
+
+                # Iniciar contador de tempo
+                start_time = time.time()
+                elapsed_time = 0
 
                 try:
                     # Criar gerador
                     status_text.text("🔧 Carregando modelo...")
+                    load_start = time.time()
                     generator = ImageGenerator(model_id=model_choice)
+                    load_time = time.time() - load_start
+                    
+                    timer_container.info(f"⏱️ **Tempo de carregamento do modelo**: {load_time:.1f} segundos")
 
                     # Criar diretório único para esta geração
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -245,24 +255,77 @@ def main():
 
                     # Função de callback para atualizar progresso
                     def update_progress(current, total, status, time_remaining=0, time_per_image=0):
+                        nonlocal elapsed_time
+                        
                         progress = current / total
                         progress_bar.progress(progress)
+                        
+                        # Calcular tempo decorrido total
+                        elapsed_time = time.time() - start_time
+                        elapsed_mins = int(elapsed_time // 60)
+                        elapsed_secs = int(elapsed_time % 60)
 
                         if status == "generating":
                             status_text.text(f"🎨 Gerando imagem {current + 1}/{total}...")
+                            
+                            # Mostrar tempo decorrido
+                            timer_container.markdown(
+                                f"""
+                                <div style='background-color: #f0f2f6; padding: 15px; border-radius: 10px; border-left: 5px solid #1f77b4;'>
+                                    <h4 style='margin: 0; color: #1f77b4;'>⏱️ Contador de Tempo</h4>
+                                    <p style='margin: 5px 0;'><strong>Tempo decorrido:</strong> {elapsed_mins}min {elapsed_secs}s</p>
+                                    <p style='margin: 5px 0;'><strong>Imagem atual:</strong> {current + 1}/{total}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                            
                         elif status == "completed":
-                            mins_remaining = int(time_remaining // 60)
-                            secs_remaining = int(time_remaining % 60)
-
                             status_text.text(f"✅ Imagem {current}/{total} concluída!")
-
+                            
                             if time_remaining > 0:
+                                mins_remaining = int(time_remaining // 60)
+                                secs_remaining = int(time_remaining % 60)
+                                
+                                # Calcular tempo total estimado
+                                total_estimated = elapsed_time + time_remaining
+                                total_mins = int(total_estimated // 60)
+                                total_secs = int(total_estimated % 60)
+
                                 time_text.markdown(
-                                    f"⏱️ **Tempo médio por imagem**: {time_per_image:.1f}s | "
-                                    f"**Tempo restante estimado**: {mins_remaining}min {secs_remaining}s"
+                                    f"⏱️ **Tempo médio por imagem**: {time_per_image:.1f}s"
+                                )
+                                
+                                timer_container.markdown(
+                                    f"""
+                                    <div style='background-color: #e8f5e9; padding: 15px; border-radius: 10px; border-left: 5px solid #4caf50;'>
+                                        <h4 style='margin: 0; color: #2e7d32;'>⏱️ Contador de Tempo</h4>
+                                        <p style='margin: 5px 0;'><strong>⏳ Tempo decorrido:</strong> {elapsed_mins}min {elapsed_secs}s</p>
+                                        <p style='margin: 5px 0;'><strong>📊 Tempo por imagem:</strong> {time_per_image:.1f}s</p>
+                                        <p style='margin: 5px 0;'><strong>⏰ Tempo restante estimado:</strong> {mins_remaining}min {secs_remaining}s</p>
+                                        <p style='margin: 5px 0;'><strong>🎯 Tempo total estimado:</strong> {total_mins}min {total_secs}s</p>
+                                        <p style='margin: 5px 0;'><strong>📈 Progresso:</strong> {current}/{total} imagens ({progress*100:.1f}%)</p>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
                                 )
                             else:
-                                time_text.markdown(f"🎉 **Todas as imagens geradas!**")
+                                # Finalização
+                                total_mins = int(elapsed_time // 60)
+                                total_secs = int(elapsed_time % 60)
+                                avg_time = elapsed_time / total if total > 0 else 0
+                                
+                                timer_container.markdown(
+                                    f"""
+                                    <div style='background-color: #fff3e0; padding: 15px; border-radius: 10px; border-left: 5px solid #ff9800;'>
+                                        <h4 style='margin: 0; color: #e65100;'>🎉 Processamento Concluído!</h4>
+                                        <p style='margin: 5px 0;'><strong>⏱️ Tempo total:</strong> {total_mins}min {total_secs}s</p>
+                                        <p style='margin: 5px 0;'><strong>📊 Tempo médio por imagem:</strong> {avg_time:.1f}s</p>
+                                        <p style='margin: 5px 0;'><strong>✅ Total de imagens:</strong> {total}</p>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
 
                     # Gerar imagens com callback
                     status_text.text(f"🚀 Iniciando geração de {num_images} imagens...")
@@ -286,20 +349,64 @@ def main():
                     # Limpar memória
                     generator.cleanup()
 
+                    # Calcular tempo total final
+                    total_time = time.time() - start_time
+                    total_mins = int(total_time // 60)
+                    total_secs = int(total_time % 60)
+                    avg_time = total_time / num_images if num_images > 0 else 0
+
                     # Finalizar
                     progress_bar.progress(1.0)
                     status_text.empty()
                     time_text.empty()
 
+                    # Mostrar resumo final
                     st.success(f"✅ {len(images)} imagens geradas com sucesso!")
                     st.info(f"📁 Imagens salvas em: {output_dir}")
+                    
+                    # Exibir resumo de tempo final
+                    timer_container.markdown(
+                        f"""
+                        <div style='background-color: #e3f2fd; padding: 20px; border-radius: 10px; border-left: 5px solid #2196f3; margin-top: 20px;'>
+                            <h3 style='margin: 0 0 15px 0; color: #1976d2;'>📊 Resumo do Processamento</h3>
+                            <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px;'>
+                                <div>
+                                    <p style='margin: 5px 0; font-size: 16px;'><strong>⏱️ Tempo Total:</strong></p>
+                                    <p style='margin: 0; font-size: 24px; color: #1976d2; font-weight: bold;'>{total_mins}min {total_secs}s</p>
+                                </div>
+                                <div>
+                                    <p style='margin: 5px 0; font-size: 16px;'><strong>📊 Tempo Médio/Imagem:</strong></p>
+                                    <p style='margin: 0; font-size: 24px; color: #1976d2; font-weight: bold;'>{avg_time:.1f}s</p>
+                                </div>
+                                <div>
+                                    <p style='margin: 5px 0; font-size: 16px;'><strong>🔧 Tempo de Carregamento:</strong></p>
+                                    <p style='margin: 0; font-size: 20px; color: #1976d2;'>{load_time:.1f}s</p>
+                                </div>
+                                <div>
+                                    <p style='margin: 5px 0; font-size: 16px;'><strong>🎨 Tempo de Geração:</strong></p>
+                                    <p style='margin: 0; font-size: 20px; color: #1976d2;'>{total_time - load_time:.1f}s</p>
+                                </div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
                     st.balloons()
 
                 except Exception as e:
                     progress_bar.empty()
                     status_text.empty()
                     time_text.empty()
+                    timer_container.empty()
+                    
+                    # Calcular tempo até o erro
+                    error_time = time.time() - start_time
+                    error_mins = int(error_time // 60)
+                    error_secs = int(error_time % 60)
+                    
                     st.error(f"❌ Erro ao gerar imagens: {str(e)}")
+                    st.warning(f"⏱️ Processamento interrompido após {error_mins}min {error_secs}s")
                     st.exception(e)
 
     # Tab 2: Visualização de Imagens
@@ -327,7 +434,7 @@ def main():
             cols = st.columns(3)
             for idx, img in enumerate(st.session_state.generated_images):
                 with cols[idx % 3]:
-                    st.image(img, caption=f"Imagem {idx + 1}", use_container_width=True)
+                    st.image(img, caption=f"Imagem {idx + 1}", width='stretch')
 
         else:
             st.info("Nenhuma imagem gerada ainda. Vá para a aba 'Geração' para criar seu personagem!")
@@ -345,7 +452,7 @@ def main():
                 generate_video_btn = st.button(
                     "🎬 Gerar Vídeo",
                     type="primary",
-                    use_container_width=True
+                    width='stretch'
                 )
 
             if generate_video_btn:
