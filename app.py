@@ -221,8 +221,7 @@ def main():
         with col1:
             generate_btn = st.button(
                 "🎨 Gerar Imagens",
-                type="primary",
-                use_container_width=True
+                type="primary"
             )
 
         if generate_btn:
@@ -327,7 +326,7 @@ def main():
             cols = st.columns(3)
             for idx, img in enumerate(st.session_state.generated_images):
                 with cols[idx % 3]:
-                    st.image(img, caption=f"Imagem {idx + 1}", use_container_width=True)
+                    st.image(img, caption=f"Imagem {idx + 1}", use_column_width=True)
 
         else:
             st.info("Nenhuma imagem gerada ainda. Vá para a aba 'Geração' para criar seu personagem!")
@@ -344,8 +343,7 @@ def main():
             with col1:
                 generate_video_btn = st.button(
                     "🎬 Gerar Vídeo",
-                    type="primary",
-                    use_container_width=True
+                    type="primary"
                 )
 
             if generate_video_btn:
