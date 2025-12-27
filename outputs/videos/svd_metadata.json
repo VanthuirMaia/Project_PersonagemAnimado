@@ -1,0 +1,13 @@
+{
+  "method": "stable_video_diffusion",
+  "num_frames": 20,
+  "fps": 4,
+  "resolution": "512x320",
+  "original_resolution": "512x512",
+  "num_inference_steps": 25,
+  "motion_bucket_id": 127,
+  "decode_chunk_size": 1,
+  "duration": 5.0,
+  "gpu_memory_used": "0.0 GB",
+  "timestamp": "2025-12-27T16:57:14.434321"
+}

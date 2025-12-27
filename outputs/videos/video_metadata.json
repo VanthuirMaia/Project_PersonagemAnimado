@@ -1,0 +1,12 @@
+{
+  "num_images": 10,
+  "fps": 3,
+  "duration_per_image": 1.5,
+  "transition_frames": 15,
+  "total_frames": 190,
+  "total_duration": 63.333333333333336,
+  "resolution": "512x512",
+  "codec": "mp4v",
+  "add_loop": true,
+  "timestamp": "2025-12-26T21:15:42.400448"
+}

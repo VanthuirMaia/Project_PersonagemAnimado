@@ -1,0 +1,33 @@
+# Interface
+streamlit>=1.40.0
+streamlit-extras==0.3.6
+
+# Geração de Imagens
+diffusers>=0.30.0
+transformers>=4.45.0
+huggingface-hub>=0.24.0
+accelerate>=0.33.0
+# PyTorch com CUDA - IMPORTANTE: Instalar com CUDA manualmente:
+# pip uninstall torch torchvision -y
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# OU para CUDA 12.1:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# 
+# NOTA: Não instalar via requirements.txt - pode instalar versão CPU-only
+torch>=2.7.0
+torchvision>=0.22.0
+safetensors>=0.4.5
+invisible-watermark==0.2.0
+
+# Geração de Vídeo
+opencv-python>=4.10.0
+pillow>=10.4.0
+imageio==2.34.0
+imageio-ffmpeg==0.4.9
+moviepy==1.0.3
+
+# Utilidades
+numpy>=2.0.0
+tqdm==4.66.1
+requests==2.31.0
+python-dotenv==1.0.1
