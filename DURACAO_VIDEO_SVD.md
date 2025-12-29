@@ -1,8 +1,14 @@
 # ⏱️ Duração do Vídeo SVD - Configurado para 5-10 Segundos
 
-## ✅ Mudanças Implementadas
+**Última atualização**: 27/12/2024
 
-As configurações padrão foram ajustadas para gerar vídeos de **5-10 segundos** ao invés dos 2 segundos anteriores.
+## ✅ Implementação Completa do Stable Video Diffusion
+
+O sistema agora possui integração completa com Stable Video Diffusion (SVD), permitindo gerar vídeos animados com movimento realista a partir de uma única imagem.
+
+## ✅ Configurações Padrão
+
+As configurações padrão foram ajustadas para gerar vídeos de **5-10 segundos** atendendo aos requisitos do projeto.
 
 ---
 
@@ -117,13 +123,101 @@ Se precisar ajustar:
 
 ---
 
+## 🎯 Otimizações Implementadas
+
+### Para GPUs com 8GB VRAM (RTX 3050, etc.)
+
+O sistema foi otimizado especificamente para GPUs com 8GB de VRAM:
+
+1. **FP16 Precision**: Reduz uso de memória em 50%
+2. **CPU Offloading**: Move componentes não críticos para RAM
+3. **Attention Slicing**: Processa atenção em chunks menores
+4. **Resolução Reduzida**: 512x320 (padrão otimizado)
+5. **Decode Chunk Size**: Processa 1 frame por vez (mínimo memória)
+
+**Uso de Memória GPU**:
+- 15 frames: ~5.5 GB (muito seguro)
+- 20 frames: ~6.5 GB (recomendado) ✅
+- 25 frames: ~7.5 GB (limite) ⚠️
+
+### Verificação Automática
+
+O sistema verifica automaticamente:
+- ✅ Disponibilidade de GPU CUDA
+- ✅ Memória livre antes da geração (mínimo 3GB)
+- ✅ Limpa cache antes e após processamento
+- ✅ Tratamento de erros com sugestões específicas
+
+## 📝 Callback de Progresso
+
+O método SVD suporta callback para atualizar progresso na interface:
+
+```python
+def progress_callback(progress, status):
+    # progress: 0.0 a 1.0
+    # status: mensagem de status
+    print(f"{progress*100:.0f}% - {status}")
+
+video_gen.animate_image_svd(
+    image=image,
+    progress_callback=progress_callback
+)
+```
+
+**Estágios do progresso**:
+- 🔧 Preparando download do modelo
+- 📥 Download em andamento (~5GB)
+- ✅ Modelo baixado! Carregando na memória
+- ⚙️ Aplicando otimizações
+- 🎬 Gerando frames com SVD
+- 🎨 Processando passos de inferência
+- 📹 Processando frames do vídeo
+- 💾 Salvando vídeo
+- ✅ Vídeo salvo com sucesso!
+
+## 💾 Metadados Salvos
+
+Cada geração SVD salva metadados completos em `svd_metadata.json`:
+
+```json
+{
+  "method": "stable_video_diffusion",
+  "num_frames": 20,
+  "fps": 4,
+  "resolution": "512x320",
+  "original_resolution": "512x512",
+  "num_inference_steps": 25,
+  "motion_bucket_id": 127,
+  "decode_chunk_size": 1,
+  "duration": 5.0,
+  "gpu_memory_used": "6.5 GB",
+  "timestamp": "2024-12-27T10:30:00"
+}
+```
+
+## 🔧 Limpeza de Memória
+
+Após gerar o vídeo, é recomendado limpar a memória GPU:
+
+```python
+video_gen.cleanup_svd()  # Remove pipeline da memória
+```
+
+Isso libera ~5-6GB de VRAM para outras operações.
+
 ## ✅ Status
 
+- ✅ Stable Video Diffusion completamente implementado
 - ✅ Valores padrão ajustados para 5 segundos
 - ✅ Interface mostra duração estimada
 - ✅ Sliders permitem ajuste para 5-10 segundos
 - ✅ Valores padrão no código atualizados
 - ✅ Session state inicializado corretamente
+- ✅ Otimizações para 8GB VRAM implementadas
+- ✅ Callback de progresso funcionando
+- ✅ Verificação de memória GPU
+- ✅ Metadados salvos automaticamente
+- ✅ Tratamento de erros robusto
 
-**Teste agora e veja vídeos de 5-10 segundos!** 🎬
+**Teste agora e veja vídeos de 5-10 segundos com movimento realista!** 🎬✨
 

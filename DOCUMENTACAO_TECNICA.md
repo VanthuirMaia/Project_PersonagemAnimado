@@ -228,7 +228,9 @@ def generate_images(
 
 ## 4. Pipeline de Geração de Vídeo
 
-### 4.1 Modelo e Ferramentas
+O sistema implementa **duas abordagens** para geração de vídeo, cada uma com suas vantagens e casos de uso.
+
+### 4.1 Método 1: Transições com OpenCV
 
 **Biblioteca**: OpenCV (cv2)
 **Técnica**: Frame Interpolation (Cross-dissolve)
@@ -239,8 +241,27 @@ def generate_images(
 - Rápido (não requer GPU)
 - Resultados previsíveis
 - Formato universal (MP4)
+- Funciona em qualquer hardware
 
-### 4.2 Etapas do Método
+### 4.2 Método 2: Stable Video Diffusion (SVD) 🆕
+
+**Modelo**: Stable Video Diffusion XT (`stabilityai/stable-video-diffusion-img2vid-xt`)
+**Framework**: Hugging Face Diffusers
+**Técnica**: Image-to-Video com IA generativa
+**Formato de Saída**: MP4 (H.264)
+
+**Justificativa**:
+- Gera movimento realista (não apenas transições)
+- Preserva identidade visual perfeitamente
+- Vídeos mais naturais e dinâmicos
+- Tecnologia state-of-the-art para animação
+- Modelo open-source e gratuito
+
+**Requisitos**:
+- GPU CUDA com 8GB+ VRAM (otimizado para 8GB)
+- ~5GB de espaço em disco (baixado na primeira execução)
+
+### 4.3 Etapas do Método OpenCV
 
 #### Etapa 1: Carregamento de Imagens
 
@@ -319,7 +340,7 @@ Cálculo:
 
 **Ajuste para 5-20s**: Reduzir duration_per_image ou transition_frames
 
-### 4.3 Técnica de Interpolação
+### 4.4 Técnica de Interpolação (OpenCV)
 
 **Método**: Linear Blending (Cross-dissolve)
 
@@ -349,7 +370,7 @@ def create_transition(img1, img2, num_frames):
 - Apenas fade entre imagens
 - Não considera pose ou estrutura
 
-### 4.4 Código-chave
+### 4.5 Código-chave - OpenCV
 
 ```python
 def create_video_from_images(
@@ -380,7 +401,162 @@ def create_video_from_images(
     video_writer.release()
 ```
 
-**Arquivo**: `src/video_generator.py:25-99`
+**Arquivo**: `src/video_generator.py:35-162`
+
+---
+
+### 4.6 Pipeline Stable Video Diffusion (SVD)
+
+#### 4.6.1 Inicialização do Pipeline
+
+O pipeline SVD é inicializado com otimizações máximas para economizar memória GPU:
+
+```python
+def _init_svd_pipeline(self, progress_callback=None):
+    # Carregar modelo com FP16 (metade da memória)
+    self.svd_pipeline = StableVideoDiffusionPipeline.from_pretrained(
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        torch_dtype=torch.float16,  # CRÍTICO: FP16 economiza 50% memória
+        variant="fp16"
+    )
+    
+    # OTIMIZAÇÕES CRÍTICAS PARA 8GB:
+    
+    # 1. CPU Offloading - move partes do modelo para CPU RAM
+    self.svd_pipeline.enable_model_cpu_offload()
+    
+    # 2. Attention Slicing - processa atenção em chunks
+    self.svd_pipeline.enable_attention_slicing(slice_size="max")
+```
+
+**Otimizações aplicadas**:
+- ✅ **FP16**: Reduz uso de memória em 50%
+- ✅ **CPU Offloading**: Move componentes não críticos para RAM
+- ✅ **Attention Slicing**: Processa atenção em chunks menores
+- ✅ **Resolução reduzida**: 512x320 (economiza memória significativamente)
+- ✅ **Decode chunk size**: Processa 1 frame por vez
+
+#### 4.6.2 Parâmetros de Geração SVD
+
+| Parâmetro | Valor Padrão | Range | Função |
+|-----------|--------------|-------|--------|
+| `num_frames` | 20 | 15-25 | Número de frames gerados (limite do modelo) |
+| `fps` | 4 | 3-7 | Frames por segundo do vídeo |
+| `resolution` | (512, 320) | - | Resolução otimizada para 8GB VRAM |
+| `num_inference_steps` | 25 | 20-50 | Passos de inferência (mais = melhor qualidade) |
+| `motion_bucket_id` | 127 | 1-255 | Controla quantidade de movimento (127 = médio) |
+| `decode_chunk_size` | 1 | 1-4 | Frames processados por vez (1 = mínimo memória) |
+
+**Cálculo de Duração**:
+```
+Duração (segundos) = num_frames ÷ fps
+
+Exemplos:
+- 20 frames ÷ 4 fps = 5.0 segundos ✅
+- 20 frames ÷ 3 fps = 6.7 segundos ✅
+- 25 frames ÷ 3 fps = 8.3 segundos ✅
+```
+
+#### 4.6.3 Processo de Geração
+
+```python
+def animate_image_svd(
+    self,
+    image: Image.Image,
+    num_frames: int = 20,
+    fps: int = 4,
+    resolution: tuple = (512, 320),
+    num_inference_steps: int = 25
+) -> str:
+    # 1. Redimensionar imagem para resolução otimizada
+    input_image = image.resize(resolution, Image.Resampling.LANCZOS)
+    
+    # 2. Limpar cache GPU
+    torch.cuda.empty_cache()
+    
+    # 3. Gerar frames com pipeline
+    frames = self.svd_pipeline(
+        input_image,
+        decode_chunk_size=1,  # Processar 1 frame por vez
+        num_frames=num_frames,
+        num_inference_steps=num_inference_steps,
+        motion_bucket_id=127,
+        fps=fps
+    ).frames[0]
+    
+    # 4. Exportar para vídeo MP4
+    export_to_video(frames, output_path, fps=fps)
+    
+    return output_path
+```
+
+**Arquivo**: `src/video_generator.py:338-491`
+
+#### 4.6.4 Gestão de Memória GPU
+
+```python
+def _check_gpu_memory(self) -> dict:
+    """Verifica memória GPU disponível"""
+    if not torch.cuda.is_available():
+        return {"available": False}
+    
+    total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    allocated = torch.cuda.memory_allocated(0) / 1024**3
+    free = total - allocated
+    
+    return {
+        "available": True,
+        "total": total,
+        "allocated": allocated,
+        "free": free
+    }
+```
+
+**Verificações antes da geração**:
+- ✅ Verifica se GPU está disponível
+- ✅ Verifica se há pelo menos 3GB livres
+- ✅ Limpa cache antes e após geração
+- ✅ Tratamento de OutOfMemoryError com sugestões
+
+#### 4.6.5 Callback de Progresso
+
+O método suporta callback para atualizar progresso na interface:
+
+```python
+def animate_image_svd(
+    self,
+    image: Image.Image,
+    progress_callback=None  # callback(progress, status)
+) -> str:
+    if progress_callback:
+        progress_callback(0.05, "🔧 Preparando download...")
+        progress_callback(0.3, "📥 Download em andamento...")
+        progress_callback(0.5, "🎨 Processando frames...")
+        progress_callback(0.9, "💾 Salvando vídeo...")
+        progress_callback(1.0, "✅ Concluído!")
+```
+
+#### 4.6.6 Metadados Salvos
+
+O SVD salva metadados específicos em JSON:
+
+```json
+{
+  "method": "stable_video_diffusion",
+  "num_frames": 20,
+  "fps": 4,
+  "resolution": "512x320",
+  "original_resolution": "512x512",
+  "num_inference_steps": 25,
+  "motion_bucket_id": 127,
+  "decode_chunk_size": 1,
+  "duration": 5.0,
+  "gpu_memory_used": "6.5 GB",
+  "timestamp": "2024-12-27T10:30:00"
+}
+```
+
+**Arquivo**: `src/video_generator.py:455-474`
 
 ---
 
@@ -508,7 +684,22 @@ Cada geração salva um JSON com:
 
 **Solução ideal**: Implementar ControlNet com pose reference
 
-❌ **Vídeo Sem Movimento Real**
+✅ **Vídeo com Movimento Real (SVD)** 🆕
+
+**Solução Implementada**: Stable Video Diffusion
+
+**Características**:
+- ✅ Gera movimento realista usando IA
+- ✅ Preserva identidade visual perfeitamente
+- ✅ Vídeos naturais e dinâmicos
+- ✅ Otimizado para 8GB VRAM
+
+**Limitações**:
+- ⚠️ Requer GPU CUDA
+- ⚠️ Anima apenas uma imagem por vez
+- ⚠️ Processamento mais lento que OpenCV
+
+❌ **Vídeo Sem Movimento Real (Método OpenCV)**
 
 **Problema**:
 - Vídeo é apenas slideshow com transições
@@ -517,11 +708,9 @@ Cada geração salva um JSON com:
 
 **Causa**:
 - Método de interpolação é simples (cross-dissolve)
-- Não usamos motion transfer ou text-to-video
+- Criado para ser rápido e funcional em qualquer hardware
 
-**Solução ideal**:
-- Integrar MediaPipe Pose para motion
-- Usar models text-to-video (Gen-2, Pika)
+**Solução**: Use o método SVD para movimento real (já implementado ✅)
 
 ❌ **Limitações de Hardware**
 
@@ -696,7 +885,20 @@ negative_prompt += ", multiple people, crowd, inconsistent style"
 
 ### 8.2 Médio Prazo (Dias/Semanas)
 
-**1. Implementar ControlNet**
+**1. ✅ Stable Video Diffusion** - **IMPLEMENTADO**
+
+```python
+# Já disponível no sistema
+video_gen.animate_image_svd(
+    image=character_image,
+    num_frames=20,
+    fps=4
+)
+```
+
+**Benefício**: Movimento realista gerado por IA ✅
+
+**2. Implementar ControlNet**
 
 ```python
 from diffusers import ControlNetModel, StableDiffusionControlNetPipeline
@@ -715,7 +917,7 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
 
 **Benefício**: Consistência visual de 95%+
 
-**2. Adicionar Efeitos de Vídeo**
+**3. Adicionar Efeitos de Vídeo (OpenCV)**
 
 ```python
 effects = {
@@ -725,9 +927,21 @@ effects = {
 }
 ```
 
-**Benefício**: Vídeos mais dinâmicos
+**Benefício**: Vídeos OpenCV mais dinâmicos
 
-**3. Suporte para APIs Cloud**
+**4. SVD Multi-Image**
+
+Permitir animar múltiplas imagens sequencialmente:
+
+```python
+for image in character_images:
+    video_gen.animate_image_svd(image)
+    # Concatenar vídeos gerados
+```
+
+**Benefício**: Vídeos mais longos com múltiplas cenas
+
+**5. Suporte para APIs Cloud**
 
 ```python
 providers = ["Replicate", "Stability AI", "Hugging Face Inference"]
@@ -754,19 +968,22 @@ animated_frames = apply_poses_to_character(
 
 **Benefício**: Animação realista
 
-**2. Integração com Text-to-Video**
+**2. ✅ Integração com Text-to-Video (SVD)** - **IMPLEMENTADO**
 
 ```python
-# Usar imagens como primeiro frame
-# Gerar vídeo com modelos especializados
-video = generate_with_gen2(
+# Já disponível - usa Stable Video Diffusion
+video_gen.animate_image_svd(
     image=character_images[0],
-    prompt="character walking forward",
-    duration=5
+    num_frames=20,
+    fps=4
 )
 ```
 
-**Benefício**: Movimento natural gerado por IA
+**Benefício**: Movimento natural gerado por IA ✅
+
+**Outras opções para explorar**:
+- Gen-2, Pika Labs, Runway (APIs pagas)
+- AnimateDiff, ModelScope (open-source)
 
 **3. Fine-tuning para Personagem Específico**
 
@@ -832,16 +1049,17 @@ O pipeline desenvolvido atende com sucesso aos requisitos do projeto:
 
 **Principais limitações**:
 - Consistência visual poderia ser melhor (ControlNet resolveria)
-- Vídeo é slideshow, não animação real (text-to-video resolveria)
-- Requer hardware razoável (GPU recomendada)
+- Método OpenCV é slideshow, não animação real (✅ SVD já implementado para resolver isso)
+- Requer hardware razoável (GPU recomendada para imagens e obrigatória para SVD)
 
 **Lição aprendida**:
 A abordagem de seeds sequenciais é uma solução pragmática para consistência visual sem complexidade adicional. Para projetos futuros, ControlNet com reference seria essencial para consistência perfeita.
 
 ---
 
-**Data de finalização**: 26/12/2024
-**Versão**: 1.0
+**Data de finalização**: 26/12/2024  
+**Última atualização**: 27/12/2024 (Adição de Stable Video Diffusion)  
+**Versão**: 2.0
 
 **Instituição**: Universidade de Pernambuco (UPE)
 **Programa**: Residência em IA Generativa

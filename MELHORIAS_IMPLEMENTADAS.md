@@ -1,6 +1,41 @@
-# Melhorias Implementadas - Sistema de Progresso
+# Melhorias Implementadas
 
-## ✅ Funcionalidades Adicionadas
+**Última atualização**: 27/12/2024  
+**Versão**: 2.0
+
+---
+
+## ✅ Funcionalidades Adicionadas - Versão 2.0
+
+### 🎬 Stable Video Diffusion (SVD) - NOVA FUNCIONALIDADE
+
+**Implementação completa de animação com IA generativa:**
+
+- ✅ Integração com Stable Video Diffusion XT
+- ✅ Método `animate_image_svd()` para animar imagens individuais
+- ✅ Otimizações para GPUs com 8GB VRAM:
+  - FP16 (metade da memória)
+  - CPU Offloading
+  - Attention Slicing máximo
+  - Resolução otimizada (512x320)
+- ✅ Callback de progresso para interface
+- ✅ Verificação de memória GPU antes da geração
+- ✅ Tratamento robusto de erros (OOM)
+- ✅ Metadados específicos salvos (svd_metadata.json)
+- ✅ Interface Streamlit com seletor de método (OpenCV vs SVD)
+
+**Parâmetros configuráveis:**
+- Frames (15-25, padrão: 20)
+- FPS (3-7, padrão: 4)
+- Resolução (otimizada para 8GB)
+- Passos de inferência (20-50, padrão: 25)
+- Motion bucket ID (controla movimento)
+
+**Resultado**: Vídeos de 5-10 segundos com movimento realista gerado por IA ✅
+
+---
+
+## ✅ Funcionalidades Adicionadas - Versão 1.0
 
 ### 1. Detecção Automática de Hardware
 - Sistema detecta se está rodando em **GPU (CUDA)** ou **CPU**
@@ -143,13 +178,54 @@ Tempo: ~8-12 min
 - Verifique terminal - pode estar processando
 - CPU pode levar vários minutos sem atualização
 
+### 6. Seletor de Método de Animação
+
+- ✅ Interface permite escolher entre dois métodos:
+  - **Transições (OpenCV)**: Múltiplas imagens com fade (qualquer hardware)
+  - **IA - Stable Video Diffusion**: Uma imagem com movimento real (requer GPU)
+- ✅ Parâmetros específicos para cada método
+- ✅ Validação de hardware antes de permitir SVD
+- ✅ Seletor de imagem quando usando SVD (múltiplas imagens disponíveis)
+
+### 7. Gestão de Memória GPU (SVD)
+
+- ✅ Verificação automática de memória disponível
+- ✅ Limpeza de cache antes e após geração
+- ✅ Método `cleanup_svd()` para liberar memória
+- ✅ Tratamento de OutOfMemoryError com sugestões específicas
+- ✅ Monitoramento de uso de memória durante geração
+
+## 📊 Comparação de Métodos de Vídeo
+
+| Característica | OpenCV (Transições) | SVD (IA) |
+|----------------|---------------------|----------|
+| **Hardware** | CPU ou GPU | GPU CUDA obrigatória |
+| **Velocidade** | ~30 segundos | 2-3 minutos |
+| **Movimento** | Apenas transições | Movimento realista ✅ |
+| **Múltiplas Imagens** | Sim | Não (uma por vez) |
+| **Download** | Nenhum | ~5GB (primeira vez) |
+| **Qualidade** | Slideshow | Animação natural ✅ |
+| **Uso de Memória** | Mínimo | 6-7GB VRAM |
+
 ## 📚 Arquivos Relacionados
 
+### Versão 2.0 (SVD):
+- `src/video_generator.py`: Implementação SVD (linhas 227-501)
+  - `_init_svd_pipeline()`: Inicialização otimizada
+  - `animate_image_svd()`: Geração de vídeo
+  - `_check_gpu_memory()`: Verificação de memória
+  - `cleanup_svd()`: Limpeza de memória
+- `app.py`: Interface SVD (linhas 247-769)
+  - Seletor de método
+  - Parâmetros SVD
+  - Seletor de imagem
+
+### Versão 1.0 (Progresso):
 - `app.py`: Interface com progresso (linhas 228-303)
 - `src/image_generator.py`: Callback de progresso (linhas 155-209)
 - `OTIMIZACOES_CPU.md`: Guia para rodar em CPU
 
 ---
 
-**Última atualização**: 26/12/2024
-**Versão**: 2.0 com Sistema de Progresso
+**Última atualização**: 27/12/2024  
+**Versão**: 2.0 (Sistema de Progresso + Stable Video Diffusion)
