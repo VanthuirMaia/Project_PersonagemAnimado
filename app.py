@@ -712,7 +712,7 @@ def main():
                     if not has_cuda:
                         st.error("❌ Stable Video Diffusion requer GPU CUDA. Selecione 'Transições (OpenCV)' ou instale PyTorch com CUDA.")
                     else:
-                        with st.spinner("🎨 Gerando vídeo com IA (Stable Video Diffusion)... Isso pode levar 2-3 minutos."):
+                        with st.spinner("🎨 Gerando vídeo com IA (Stable Video Diffusion)... Isso pode levar algumas minutos/horas."):
                             try:
                                 # Recuperar parâmetros do session_state
                                 svd_frames = st.session_state.get('svd_frames', 20)

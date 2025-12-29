@@ -1,13 +1,13 @@
 {
   "method": "stable_video_diffusion",
-  "num_frames": 20,
+  "num_frames": 25,
   "fps": 4,
-  "resolution": "512x320",
+  "resolution": "640x384",
   "original_resolution": "512x512",
-  "num_inference_steps": 25,
+  "num_inference_steps": 30,
   "motion_bucket_id": 127,
   "decode_chunk_size": 1,
-  "duration": 5.0,
+  "duration": 6.25,
   "gpu_memory_used": "0.0 GB",
-  "timestamp": "2025-12-27T16:57:14.434321"
+  "timestamp": "2025-12-29T19:02:59.278949"
 }
